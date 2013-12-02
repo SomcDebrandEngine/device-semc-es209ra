@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+device: es209ra
+branding: 4.1.2
+Created-By: Achotjan
+version: 1.0

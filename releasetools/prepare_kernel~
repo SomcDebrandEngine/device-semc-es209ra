@@ -1,0 +1,18 @@
+#!/usr/bin/python
+import sys
+import os.path
+import shutil
+
+    if os.path.exists(kernel_config_file):
+        #If it doesn't exists we'll be using prebuilt kernel
+        with open(kernel_config_file) as kernel:
+    with open(os.path.join(device/semc/es209ra/prebuilt/kernel/, "manifest.mf")) as source_manifest:
+        with open(os.path.join(product_out_directory, "manifest.mf"), "w") as manifest:
+            for line in source_manifest.readlines():
+                if version is not None and line.startswith("version"):
+                    manifest.write("version: %s\n" % version)
+                    continue
+                manifest.write(line)
+
+    
+

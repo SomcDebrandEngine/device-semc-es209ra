@@ -1,0 +1,32 @@
+#!/sbin/sh
+setprop service.adb.root 1
+if [ -e /sbin/bootrec-device ]
+then
+  /sbin/bootrec-device
+fi
+
+if [ -s /dev/keycheck -o -e /cache/recovery/boot ]
+then
+  rm /cache/recovery/boot
+  mount -o remount,rw rootfs /
+  umount -l /system
+  umount -l /data
+  umount -l /cache
+  umount -l /mnt/sdcard
+  rm -r /sdcard
+  rm -r /not/sdcard
+  mkdir /sdcard
+  mkdir /tmp
+  rm /etc
+  mkdir /etc
+  cp /recovery.fstab /etc/recovery.fstab
+  mount /dev/block/mmcblk0p1 /sdcard
+  setprop sys.usb.config mass_storage,adb
+  /sbin/recovery&
+else
+  echo 1 > /sys/module/msm_fb/parameters/align_buffer
+fi
+
+/system/bin/chargemon
+#continue booting
+

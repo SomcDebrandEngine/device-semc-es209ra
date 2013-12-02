@@ -1,0 +1,268 @@
+import init.es209ra.usb.rc
+
+# To be populated..
+on early-fs
+
+on post-fs
+    mkdir /data/idd 0755 idd idd
+    mount ext4 /dev/block/mmcblk0p8 /data/idd nosuid nodev noatime barrier=0
+    chown idd idd /data/idd
+    chmod 0755 /data/idd
+    mkdir /data/tombstones 0755 system system
+    mkdir /data/crashsms 0711 system system
+    mkdir /data/crashsms/crashes 0755 system system
+    mkdir /data/mediaserver 0740 media media
+    mkdir /data/pc 0700 radio radio
+    # Change to socket location on libkeyctrl/suntory for /data encryption
+    mkdir /dev/socket/suntory 0755 system system
+
+on early-boot
+
+# Start recovery
+    exec /sbin/bootrec
+
+# Make sure the crashsms/crashes are writable by crashmonitor
+service iddd /system/bin/iddd
+    class main
+    user idd
+    group idd log
+
+# Start suntrold
+service suntrold /system/bin/suntrold
+    class main
+    user system
+    group system
+    oneshot
+
+on property:persist.sys.kernel.log=logcat
+    start klogrouterd
+
+on property:persist.sys.kernel.log=default
+    stop klogrouterd
+
+service klogrouterd /system/bin/klogrouter logcat
+    oneshot
+    disabled
+
+on fs
+    # mount mtd partitions
+    # Mount /system rw first to give the filesystem a chance to save a checkpoint
+    mount yaffs2 mtd@system /system
+    mount yaffs2 mtd@system /system ro remount
+    mount yaffs2 mtd@userdata /data nosuid nodev
+    mount yaffs2 mtd@cache /cache nosuid nodev
+
+on early-init
+    export EXTERNAL_STORAGE /mnt/sdcard
+    mkdir /mnt/sdcard 0000 system system
+    # for backwards compatibility
+    symlink /mnt/sdcard /sdcard
+
+
+service dhcp-service /system/bin/netcfg wlan0 dhcp
+    class main
+    oneshot
+
+on property:dev.bootcomplete=1
+    stop dhcp-service
+    start dhcp-service
+
+on boot
+
+    mkdir               /data/system 0770 system system
+    chmod 0770          /data/system
+    chown system system /data/system
+    #write /sys/module/msm_fb/parameters/align_buffer 1
+
+#wifi
+#    mkdir               /data/misc/dhcp
+#    chmod 0770          /data/misc/dhcp
+#    chown dhcp system   /data/misc/dhcp
+
+    mkdir /data/misc 01771 system misc
+    mkdir /data/misc/wifi 0770 system wifi
+    mkdir /data/misc/wifi/sockets
+    chown system wifi /data/misc/wifi/sockets
+    chmod 770 /data/misc/wifi/sockets
+    mkdir /data/misc/dhcp 0770 dhcp dhcp
+    chown dhcp dhcp /data/misc/dhcp
+
+#    ln -s               /data/misc/wifi/wlan0 /data/system/wpa_supplicant
+#    mkdir               /data/misc/wifi
+#    chmod 0777          /data/misc/wifi
+#    chown wifi wifi     /data/misc/wifi
+#    mkdir               /data/misc/wifi/sockets 0770 wifi wifi
+#    chmod 0666          /data/misc/wifi/wpa_supplicant.conf
+#    chown wifi wifi     /data/misc/wifi/wpa_supplicant.conf
+
+    mkdir /data/misc/bluetooth 0770 bluetooth bluetooth
+    chown bluetooth bluetooth /sys/module/bluetooth_power/parameters/power
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
+    chown bluetooth bluetooth /proc/bluetooth/sleep/proto
+    chown system system /sys/module/sco/parameters/disable_esco
+    chmod 0660 /sys/module/bluetooth_power/parameters/power
+    chmod 0660 /sys/class/rfkill/rfkill0/state
+    chmod 0660 /proc/bluetooth/sleep/proto
+
+    chown system system /sys/bus/platform/devices/msm_sdcc.1/polling
+    chown system system /sys/bus/platform/devices/msm_sdcc.2/polling
+    chown system system /sys/bus/platform/devices/msm_sdcc.3/polling
+    chown system system /sys/bus/platform/devices/msm_sdcc.4/polling
+
+    # LV5219LG LED permissions
+    chown system system /sys/class/leds/lv5219lg:rgb1:red/brightness
+    chown system system /sys/class/leds/lv5219lg:rgb1:red/blink_on
+    chown system system /sys/class/leds/lv5219lg:rgb1:red/blink_off
+    chown system system /sys/class/leds/lv5219lg:rgb1:green/brightness
+    chown system system /sys/class/leds/lv5219lg:rgb1:green/blink_on
+    chown system system /sys/class/leds/lv5219lg:rgb1:green/blink_off
+    chown system system /sys/class/leds/lv5219lg:rgb1:blue/brightness
+    chown system system /sys/class/leds/lv5219lg:rgb1:blue/blink_on
+    chown system system /sys/class/leds/lv5219lg:rgb1:blue/blink_off
+    chown system system /sys/class/leds/lv5219lg:fled/brightness
+    chown system system /sys/class/leds/lv5219lg:mled/brightness
+    chown system system /sys/class/leds/lv5219lg:sled/brightness
+    chown system system /sys/class/leds/lv5219lg:fled/spotlight_enable
+    chmod 0666 /sys/class/leds/lv5219lg:fled/spotlight_enable
+    chown system system /sys/class/leds/lv5219lg:mled/als_enable
+    chmod 0777 /sys/class/leds/lv5219lg:fled/brightness
+    #allow setting polling rate on bma150
+    chown system system /sys/devices/platform/i2c-adapter/i2c-0/0-0038/rate
+
+    # USB host support
+    mkdir /dev/bus 0771 system system
+    mkdir /dev/bus/usb 0771 system system
+
+	# For qmuxd socket
+    mkdir /data/radio 0770 radio radio
+    chown radio radio 0770 /data/radio
+
+    mkdir /data/local
+    chmod 0777 /data/local
+    chown radio shell /data/local
+    mkdir /data/local/tmp
+    chmod 0777 /data/local/tmp
+    chown radio shell /data/local/tmp
+
+    chmod 0660 /sys/devices/platform/msm_hsusb/gadget/lun1/file
+    chown usb usb /sys/devices/platform/msm_hsusb/gadget/lun1/file
+
+    class_start default
+
+# Enable MASS storage on SDCARD
+#    write /sys/devices/platform/mass_storage/lun0/file /dev/block/mmcblk0p1
+#    write /sys/bus/platform/drivers/msm_sdcc/msm_sdcc.1/polling 1
+#    write /sys/bus/platform/drivers/msm_sdcc/msm_sdcc.4/polling 1
+
+
+# This property trigger has added to imitiate the previous behavior of "adb root".
+# The adb gadget driver used to reset the USB bus when the adbd daemon exited,
+# and the host side adb relied on this behavior to force it to reconnect with the
+# new adbd instance after init relaunches it. So now we force the USB bus to reset
+# here when adbd sets the service.adb.root property to 1.  We also restart adbd here
+# rather than waiting for init to notice its death and restarting it so the timing
+# of USB resetting and adb restarting more closely matches the previous behavior.
+on property:service.adb.root=1
+    write /sys/class/android_usb/android0/enable 0
+    restart adbd
+    write /sys/class/android_usb/android0/enable 1
+
+
+# SEMC: Updatemiscta
+service updatemiscta /system/bin/updatemiscta
+    class main
+    user root
+    oneshot
+
+service illumination /system/bin/illumination_service
+    socket illumination stream 0666 root system
+    class main
+    user root
+
+on property:init.svc.bluetoothd=running
+    write /sys/devices/virtual/bluetooth/hci0/link_supervision_timeout 6400
+
+service hci_qcomm_init /system/bin/log -t qcom-bluetooth -p i "hci_qcomm_init service requested"
+    class main
+    user bluetooth
+    group bluetooth net_bt_admin
+    disabled
+    oneshot
+
+service wlan_mac /system/bin/wlan_mac
+    class main
+    user root
+    oneshot
+
+service qmuxd /system/bin/qmuxd &
+    class main
+    user radio
+
+service hciattach /system/bin/sh /system/etc/init.bt.sh
+    class main
+    user root
+    group qcom_oncrpc bluetooth net_bt_admin system sdcard_rw
+    disabled
+    oneshot
+
+service hcid /system/bin/hcid -s -n -f /etc/bluez/hcid.conf
+    class main
+    socket bluetooth stream 660 bluetooth bluetooth
+    socket dbus_bluetooth stream 660 bluetooth bluetooth
+    # init.rc does not yet support applying capabilities, so run as root and
+    # let hcid drop uid to bluetooth with the right linux capabilities
+    group bluetooth net_bt_admin misc
+    disabled
+
+service akmd2 /system/bin/akmd2
+    class main
+    user compass
+    group compass misc input system
+
+service hw_config /system/bin/sh /etc/hw_config.sh
+    class main
+    user root
+    oneshot
+
+on property:init.svc.wpa_supplicant=stopped
+    stop dhcpcd_wlan0
+
+service wpa_supplicant /system/bin/logwrapper /system/bin/wpa_supplicant -Dar6000 -iwlan0 -W -c/data/misc/wifi/wpa_supplicant.conf
+    class main
+    group wifi inet
+    socket wpa_wlan0 dgram 660 wifi wifi
+    disabled
+    oneshot
+
+
+service dhcpcd_wlan0 /system/bin/dhcpcd -BKL
+    class main
+    disabled
+    oneshot
+
+service iprenew_wlan0 /system/bin/dhcpcd -n
+    class main
+    disabled
+    oneshot
+
+service hostapd /system/bin/hostapd /data/misc/wifi/hostapd.conf
+    socket hostapd_athap0 dgram 660 wifi wifi
+    group wifi inet
+    oneshot
+    disabled
+
+on boot
+    # Stamina Mode
+    chown system system /sys/devices/platform/sony_ssm/enable
+    chown system system /sys/devices/platform/sony_ssm/set_late_resume_notifications
+    chown system system /sys/devices/platform/sony_ssm/set_request_next_suspend_prepare_notification
+
+    # Stamina Mode hack by Achotjan
+    chmod 0777 /sys/devices/platform/sony_ssm/enable
+    chmod 0777 /sys/devices/platform/sony_ssm/set_late_resume_notifications
+    chmod 0777 /sys/devices/platform/sony_ssm/set_request_next_suspend_prepare_notification
+    chmod 0777 /sys/devices/platform/sony_ssm/*
+    chmod 0777 /sys/devices/platform/sony_ssm/driver
+    chmod 0777 /sys/devices/platform/sony_ssm/driver/*
+

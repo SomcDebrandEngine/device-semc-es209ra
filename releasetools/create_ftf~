@@ -1,0 +1,4 @@
+#!/bin/sh
+cd $1
+jar cvfm0 kernel.jar /device/semc/es209ra/prebuilt/kernel/manifest.mf /device/semc/es209ra/prebuilt/kernel/loader.sin kernel.sin
+mv kernel.jar kernel.ftf
